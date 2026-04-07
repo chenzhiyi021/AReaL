@@ -18,6 +18,7 @@ from typing import Any
 
 from datasets import Dataset
 
+from areal.api.alloc_mode import ModelAllocation
 from areal.api.cli_args import (
     BaseExperimentConfig,
     GenerationHyperparameters,
@@ -179,7 +180,6 @@ def main(argv: list[str]) -> None:
 
     # --- Build GatewayControllerConfig from YAML rollout section ---
     ctrl_config = GatewayControllerConfig(
-        admin_api_key="rollout-admin",
         tokenizer_path=config.tokenizer_path,
         model_path=config.model_path,
         consumer_batch_size=rollout_cfg.consumer_batch_size,
@@ -211,12 +211,18 @@ def main(argv: list[str]) -> None:
         raise NotImplementedError(f"Unknown scheduler type: {sched_type}")
 
     # --- Controller ---
-    sglang_args = asdict(config.sglang)
+    rollout_alloc = ModelAllocation.from_str(config.rollout.backend, name="rollout")
+    if rollout_alloc.backend == "sglang":
+        server_args = asdict(config.sglang)
+    elif rollout_alloc.backend == "vllm":
+        server_args = asdict(config.vllm)
+    else:
+        raise ValueError(f"Unsupported rollout backend: {rollout_alloc.backend}")
 
     ctrl = GatewayInferenceController(config=ctrl_config, scheduler=scheduler)
     ctrl.initialize(
         role="rollout",
-        server_args=sglang_args,
+        server_args=server_args,
     )
 
     # --- Workflow kwargs (identical to examples/tau2/train.py) ---
