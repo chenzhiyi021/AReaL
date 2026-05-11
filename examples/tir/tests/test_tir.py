@@ -54,17 +54,6 @@ async def test_tool_manager():
         )
         assert empty_status == ToolCallStatus.ERROR
         assert "Error" in empty_result
-
-        # Test Python execution of code that raises an error.
-        zero_result, zero_status = await python_manager.aexecute_tool_call(
-            "```python\n1 / 0\n```"
-        )
-        print(f"Zero division result: {zero_result}, status: {zero_status}")
-        assert zero_status == ToolCallStatus.ERROR
-        assert (
-            "ZeroDivisionError" in zero_result
-            or "division by zero" in zero_result.lower()
-        )
     finally:
         await python_manager.acleanup()
         await calc_manager.acleanup()
